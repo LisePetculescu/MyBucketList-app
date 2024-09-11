@@ -3,21 +3,12 @@ import { View, Text, TextInput, ScrollView, Pressable, Modal, StyleSheet } from 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const App = () => {
-  // State variables
-  // Array to store notes
   const [notes, setNotes] = useState([]);
-
-  // Selected note for editing
   const [selectedNote, setSelectedNote] = useState(null);
-
-  // Note title
   const [title, setTitle] = useState("");
-
-  // Note content
   const [content, setContent] = useState("");
-
-  // Modal visibility state
   const [modalVisible, setModalVisible] = useState(false);
+  const [viewModalVisible, setViewModalVisible] = useState(false); // New modal for viewing note details
 
   // Function to save notes to AsyncStorage
   const saveNotesToStorage = async (notes) => {
@@ -33,11 +24,9 @@ const App = () => {
   const loadNotesFromStorage = async () => {
     try {
       const storedNotes = await AsyncStorage.getItem("notes");
-      // Check if storedNotes is not null and not undefined before parsing
       if (storedNotes !== null && storedNotes !== undefined) {
         setNotes(JSON.parse(storedNotes));
       } else {
-        // If there are no notes, initialize with an empty array
         setNotes([]);
       }
     } catch (error) {
@@ -45,21 +34,18 @@ const App = () => {
     }
   };
 
-  // Load notes when the app starts
   useEffect(() => {
     loadNotesFromStorage();
   }, []);
 
-  // Function to handle saving a note
+  // Handle saving a note
   const handleSaveNote = () => {
     let updatedNotes;
     if (selectedNote) {
-      // If a note is selected, update it
       updatedNotes = notes.map((note) => (note.id === selectedNote.id ? { ...note, title, content } : note));
       setNotes(updatedNotes);
       setSelectedNote(null);
     } else {
-      // If no note is selected, add a new note
       const newNote = {
         id: Date.now(),
         title,
@@ -67,17 +53,14 @@ const App = () => {
       };
       updatedNotes = [...notes, newNote];
     }
-
-    // Update the notes in state and AsyncStorage
     setNotes(updatedNotes);
     saveNotesToStorage(updatedNotes);
-
     setTitle("");
     setContent("");
     setModalVisible(false);
   };
 
-  // Function to handle editing a note
+  // Handle editing a note
   const handleEditNote = (note) => {
     setSelectedNote(note);
     setTitle(note.title);
@@ -85,31 +68,42 @@ const App = () => {
     setModalVisible(true);
   };
 
-  // Function to handle deleting a note
+  // Handle deleting a note
   const handleDeleteNote = (note) => {
     const updatedNotes = notes.filter((item) => item.id !== note.id);
     setNotes(updatedNotes);
-    saveNotesToStorage(updatedNotes); // Save the updated list to AsyncStorage
+    saveNotesToStorage(updatedNotes);
     setSelectedNote(null);
     setModalVisible(false);
   };
 
   return (
     <View style={styles.container}>
-      {/* Title */}
-      <Text style={styles.title}>My Bucketlist</Text>
-      <Text style={styles.basicText}>30 things to do before 30</Text>
+      <Text style={styles.title}>My Notes</Text>
 
-      {/* List of notes */}
       <ScrollView style={styles.noteList}>
         {notes.map((note, index) => (
-          <View key={note.id} style={styles.noteList}>
-            <Pressable onPress={() => handleEditNote(note)}>
+          <View key={note.id} style={styles.noteContainer}>
+            <View style={styles.noteHeader}>
               <Text style={styles.noteTitle}>
                 {index + 1}. {note.title}
               </Text>
+
+              {/* Edit button next to the title */}
+              <Pressable onPress={() => handleEditNote(note)} style={styles.editButton}>
+                <Text style={styles.editButtonText}>Edit</Text>
+              </Pressable>
+            </View>
+
+            {/* Pressable content to view details */}
+            <Pressable
+              onPress={() => {
+                setSelectedNote(note);
+                setViewModalVisible(true); // Open the view modal
+              }}
+            >
+              <Text style={styles.basicText2}>{note.content.length > 25 ? note.content.substring(0, 25) + "..." : note.content}</Text>
             </Pressable>
-            <Text style={styles.basicText2}>{note.content}</Text>
           </View>
         ))}
       </ScrollView>
@@ -126,16 +120,41 @@ const App = () => {
         <Text style={styles.addButtonText}>Add Note</Text>
       </Pressable>
 
+      {/* Modal for viewing note details */}
+      {selectedNote && (
+        <Modal visible={viewModalVisible} animationType="slide" transparent={false}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.detailTitle}>Title: {selectedNote.title}</Text>
+            <Text style={styles.detailContent}>Details: {selectedNote.content}</Text>
+
+            {/* Container to hold the Edit and Close buttons on the same line */}
+            <View style={styles.buttonRow}>
+              {/* Edit button */}
+              <Pressable
+                onPress={() => {
+                  setViewModalVisible(false);
+                  handleEditNote(selectedNote); // Switch to the edit modal
+                }}
+                style={styles.editButtonModal}
+              >
+                <Text style={styles.editButtonText}>Edit</Text>
+              </Pressable>
+
+              {/* Close button */}
+              <Pressable onPress={() => setViewModalVisible(false)} style={styles.cancelButton}>
+                <Text style={styles.buttonText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* Modal for creating/editing notes */}
       <Modal visible={modalVisible} animationType="slide" transparent={false}>
-        <View style={styles.modalContainer}>
-          {/* Note title input */}
-          <TextInput style={styles.input} placeholder="Enter note title" value={title} onChangeText={setTitle} />
+        <View style={styles.modalContainerPurple}>
+          <TextInput style={styles.detailTitle} placeholder="Enter note title" value={title} onChangeText={setTitle} />
+          <TextInput style={styles.detailContent} multiline placeholder="Enter note content" value={content} onChangeText={setContent} />
 
-          {/* Note content input */}
-          <TextInput style={styles.contentInput} multiline placeholder="Enter note content" value={content} onChangeText={setContent} />
-
-          {/* Buttons for saving, canceling, and deleting */}
           <View style={styles.buttonContainer}>
             <Pressable onPress={handleSaveNote} style={styles.saveButton}>
               <Text style={styles.buttonText}>Save</Text>
@@ -178,16 +197,20 @@ const styles = StyleSheet.create({
   basicText2: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 30,
-    marginLeft: 25,
-    color: "#333"
+    color: "#333",
+    backgroundColor: "rgb(205 248 176)",
+    paddingBottom: 15,
+    paddingLeft: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+    marginLeft: 10
   },
   noteList: {
     flex: 1
   },
   noteTitle: {
     fontSize: 15,
-    marginBottom: 10,
+    paddingBottom: 10,
     fontWeight: "bold",
     color: "black",
     backgroundColor: "white",
@@ -209,10 +232,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold"
   },
-  modalContainer: {
+  modalContainerPurple: {
     flex: 1,
     padding: 50,
-    backgroundColor: "white"
+    backgroundColor: "rgb(241 192 255)"
   },
   input: {
     borderWidth: 1,
@@ -241,13 +264,6 @@ const styles = StyleSheet.create({
     width: "30%",
     alignItems: "center"
   },
-  cancelButton: {
-    backgroundColor: "#FF3B30",
-    padding: 10,
-    borderRadius: 8,
-    width: "30%",
-    alignItems: "center"
-  },
   deleteButton: {
     backgroundColor: "#FF9500",
     padding: 10,
@@ -257,6 +273,86 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
+    fontWeight: "bold"
+  },
+  modalContainer: {
+    flex: 1,
+    padding: 50,
+    backgroundColor: "pink",
+    padding: 10
+  },
+  detailTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 20,
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 10
+  },
+  detailContent: {
+    fontSize: 18,
+    marginBottom: 20,
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 10
+  },
+  noteContainer: {
+    marginBottom: 20
+  },
+
+  noteHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+
+  noteTitle: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "black",
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 8,
+    flex: 1
+  },
+
+  editButton: {
+    backgroundColor: "#007BFF",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    width: "20%"
+  },
+
+  editButtonText: {
+    color: "black",
+    fontWeight: "bold"
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20
+  },
+  editButtonModal: {
+    backgroundColor: "#007BFF",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    width: "40%"
+  },
+  cancelButton: {
+    backgroundColor: "#FF3B30",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    width: "40%"
+  },
+  editButtonText: {
+    color: "white",
+    fontWeight: "bold"
+  },
+  buttonText: {
+    color: "white",
     fontWeight: "bold"
   }
 });
