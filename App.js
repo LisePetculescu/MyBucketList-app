@@ -210,15 +210,14 @@ const styles = StyleSheet.create({
   },
   noteTitle: {
     fontSize: 15,
-    paddingBottom: 10,
     fontWeight: "bold",
     color: "black",
     backgroundColor: "white",
-    height: 40,
-    width: "100%",
     padding: 10,
-    borderRadius: 8
+    borderRadius: 8,
+    flex: 1
   },
+
   addButton: {
     alignItems: "center",
     justifyContent: "center",
@@ -264,15 +263,9 @@ const styles = StyleSheet.create({
     width: "30%",
     alignItems: "center"
   },
-  deleteButton: {
-    backgroundColor: "#FF9500",
-    padding: 10,
-    borderRadius: 8,
-    width: "30%",
-    alignItems: "center"
-  },
+
   buttonText: {
-    color: "#fff",
+    color: "white",
     fontWeight: "bold"
   },
   modalContainer: {
@@ -306,27 +299,12 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
 
-  noteTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "black",
-    backgroundColor: "white",
-    padding: 10,
-    borderRadius: 8,
-    flex: 1
-  },
-
   editButton: {
     backgroundColor: "#007BFF",
     padding: 10,
     borderRadius: 8,
     alignItems: "center",
     width: "20%"
-  },
-
-  editButtonText: {
-    color: "black",
-    fontWeight: "bold"
   },
   buttonRow: {
     flexDirection: "row",
@@ -341,17 +319,20 @@ const styles = StyleSheet.create({
     width: "40%"
   },
   cancelButton: {
-    backgroundColor: "#FF3B30",
+    backgroundColor: "#FF9500",
     padding: 10,
     borderRadius: 8,
     alignItems: "center",
     width: "40%"
   },
-  editButtonText: {
-    color: "white",
-    fontWeight: "bold"
+  deleteButton: {
+    backgroundColor: "#FF3B30",
+    padding: 10,
+    borderRadius: 8,
+    width: "30%",
+    alignItems: "center"
   },
-  buttonText: {
+  editButtonText: {
     color: "white",
     fontWeight: "bold"
   }
