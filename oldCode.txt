@@ -1,0 +1,240 @@
+  //   const [notes, setNotes] = useState([]);
+  //   const [selectedNote, setSelectedNote] = useState(null);
+  //   const [title, setTitle] = useState("");
+  //   const [content, setContent] = useState("");
+  //   const [modalVisible, setModalVisible] = useState(false);
+  //   const [viewModalVisible, setViewModalVisible] = useState(false); // New modal for viewing note details
+
+  //   const firebaseConfig = {
+  //     apiKey: "AIzaSyB5W9YKYshe4znSAPSHAM9pMr_C0aws9oQ",
+  //     authDomain: "bucketlist-app-db.firebaseapp.com",
+  //     projectId: "bucketlist-app-db",
+  //     storageBucket: "bucketlist-app-db.appspot.com",
+  //     messagingSenderId: "546701675762",
+  //     appId: "1:546701675762:web:49e58f7298156d36f3146b",
+  //     measurementId: "G-RCR1YGD7Y0"
+  //   };
+
+  //   const app = initializeApp(firebaseConfig);
+  //   const analytics = getAnalytics(app);
+
+  //   // // Function to save notes to AsyncStorage
+  //   // const saveNotesToStorage = async (notes) => {
+  //   //   try {
+  //   //     const jsonNotes = JSON.stringify(notes);
+  //   //     await AsyncStorage.setItem("notes", jsonNotes);
+  //   //   } catch (error) {
+  //   //     console.error("Error saving notes", error);
+  //   //   }
+  //   // };
+
+  //   const loadNotesFromFirestore = async () => {
+  //     try {
+  //       const notesSnapshot = await firestore().collection("notes").get();
+  //       const loadedNotes = notesSnapshot.docs.map((doc) => ({
+  //         id: doc.id,
+  //         ...doc.data()
+  //       }));
+  //       setNotes(loadedNotes);
+  //     } catch (error) {
+  //       console.error("Error loading notes from Firestore", error);
+  //     }
+  //   };
+
+  //   // // Function to load notes from AsyncStorage
+  //   // const loadNotesFromStorage = async () => {
+  //   //   try {
+  //   //     const storedNotes = await AsyncStorage.getItem("notes");
+  //   //     if (storedNotes !== null && storedNotes !== undefined) {
+  //   //       setNotes(JSON.parse(storedNotes));
+  //   //     } else {
+  //   //       setNotes([]);
+  //   //     }
+  //   //   } catch (error) {
+  //   //     console.error("Error loading notes", error);
+  //   //   }
+  //   // };
+
+  //   useEffect(() => {
+  //     loadNotesFromFirestore();
+  //   }, []);
+
+  //   const handleSaveNote = async () => {
+  //     let updatedNotes;
+  //     if (selectedNote) {
+  //       updatedNotes = notes.map((note) => (note.id === selectedNote.id ? { ...note, title, content } : note));
+  //       setNotes(updatedNotes);
+
+  //       // Update note in Firestore
+  //       await firestore().collection("notes").doc(selectedNote.id.toString()).update({
+  //         title,
+  //         content
+  //       });
+  //       setSelectedNote(null);
+  //     } else {
+  //       const newNote = {
+  //         id: Date.now(),
+  //         title,
+  //         content
+  //       };
+  //       updatedNotes = [...notes, newNote];
+
+  //       // Save new note to Firestore
+  //       await firestore().collection("notes").doc(newNote.id.toString()).set({
+  //         title: newNote.title,
+  //         content: newNote.content
+  //       });
+  //     }
+  //     setNotes(updatedNotes);
+  //     setTitle("");
+  //     setContent("");
+  //     setModalVisible(false);
+  //   };
+
+  //   // // Handle saving a note
+  //   // const handleSaveNote = () => {
+  //   //   let updatedNotes;
+  //   //   if (selectedNote) {
+  //   //     updatedNotes = notes.map((note) => (note.id === selectedNote.id ? { ...note, title, content } : note));
+  //   //     setNotes(updatedNotes);
+  //   //     setSelectedNote(null);
+  //   //   } else {
+  //   //     const newNote = {
+  //   //       id: Date.now(),
+  //   //       title,
+  //   //       content
+  //   //     };
+  //   //     updatedNotes = [...notes, newNote];
+  //   //   }
+  //   //   setNotes(updatedNotes);
+  //   //   saveNotesToStorage(updatedNotes);
+  //   //   setTitle("");
+  //   //   setContent("");
+  //   //   setModalVisible(false);
+  //   // };
+
+  //   // Handle editing a note
+  //   const handleEditNote = (note) => {
+  //     setSelectedNote(note);
+  //     setTitle(note.title);
+  //     setContent(note.content);
+  //     setModalVisible(true);
+  //   };
+
+  //   const handleDeleteNote = async (note) => {
+  //     const updatedNotes = notes.filter((item) => item.id !== note.id);
+  //     setNotes(updatedNotes);
+
+  //     // Delete note from Firestore
+  //     await firestore().collection("notes").doc(note.id.toString()).delete();
+
+  //     setSelectedNote(null);
+  //     setModalVisible(false);
+  //   };
+
+  //   // // Handle deleting a note
+  //   // const handleDeleteNote = (note) => {
+  //   //   const updatedNotes = notes.filter((item) => item.id !== note.id);
+  //   //   setNotes(updatedNotes);
+  //   //   saveNotesToStorage(updatedNotes);
+  //   //   setSelectedNote(null);
+  //   //   setModalVisible(false);
+  //   // };
+
+  //   return (
+  //     <View style={styles.container}>
+  //       <Text style={styles.title}>My Notes</Text>
+
+  //       <ScrollView style={styles.noteList}>
+  //         {notes.map((note, index) => (
+  //           <View key={note.id} style={styles.noteContainer}>
+  //             <View style={styles.noteHeader}>
+  //               <Text style={styles.noteTitle}>
+  //                 {index + 1}. {note.title}
+  //               </Text>
+
+  //               {/* Edit button next to the title */}
+  //               <Pressable onPress={() => handleEditNote(note)} style={styles.editButton}>
+  //                 <Text style={styles.editButtonText}>Edit</Text>
+  //               </Pressable>
+  //             </View>
+
+  //             {/* Pressable content to view details */}
+  //             <Pressable
+  //               onPress={() => {
+  //                 setSelectedNote(note);
+  //                 setViewModalVisible(true); // Open the view modal
+  //               }}
+  //             >
+  //               <Text style={styles.basicText2}>{note.content.length > 25 ? note.content.substring(0, 25) + "..." : note.content}</Text>
+  //             </Pressable>
+  //           </View>
+  //         ))}
+  //       </ScrollView>
+
+  //       {/* Add Note button */}
+  //       <Pressable
+  //         style={styles.addButton}
+  //         onPress={() => {
+  //           setTitle("");
+  //           setContent("");
+  //           setModalVisible(true);
+  //         }}
+  //       >
+  //         <Text style={styles.addButtonText}>Add Note</Text>
+  //       </Pressable>
+
+  //       {/* Modal for viewing note details */}
+  //       {selectedNote && (
+  //         <Modal visible={viewModalVisible} animationType="slide" transparent={false}>
+  //           <View style={styles.modalContainer}>
+  //             <Text style={styles.detailTitle}>Title: {selectedNote.title}</Text>
+  //             <Text style={styles.detailContent}>Details: {selectedNote.content}</Text>
+
+  //             {/* Container to hold the Edit and Close buttons on the same line */}
+  //             <View style={styles.buttonRow}>
+  //               {/* Edit button */}
+  //               <Pressable
+  //                 onPress={() => {
+  //                   setViewModalVisible(false);
+  //                   handleEditNote(selectedNote); // Opens edit modal
+  //                 }}
+  //                 style={styles.editButtonModal}
+  //               >
+  //                 <Text style={styles.editButtonText}>Edit</Text>
+  //               </Pressable>
+  //               {/* Close button */}
+  //               <Pressable onPress={() => setViewModalVisible(false)} style={styles.cancelButton}>
+  //                 <Text style={styles.buttonText}>Close</Text>
+  //               </Pressable>
+  //             </View>
+  //           </View>
+  //         </Modal>
+  //       )}
+
+  //       {/* Modal for creating/editing notes */}
+  //       <Modal visible={modalVisible} animationType="slide" transparent={false}>
+  //         <View style={styles.modalContainerPurple}>
+  //           <TextInput style={styles.detailTitle} placeholder="Enter note title" value={title} onChangeText={setTitle} />
+  //           <TextInput style={styles.detailContent} multiline placeholder="Enter note content" value={content} onChangeText={setContent} />
+
+  //           <View style={styles.buttonContainer}>
+  //             <Pressable onPress={handleSaveNote} style={styles.saveButton}>
+  //               <Text style={styles.buttonText}>Save</Text>
+  //             </Pressable>
+
+  //             <Pressable onPress={() => setModalVisible(false)} style={styles.cancelButton}>
+  //               <Text style={styles.buttonText}>Cancel</Text>
+  //             </Pressable>
+
+  //             {selectedNote && (
+  //               <Pressable onPress={() => handleDeleteNote(selectedNote)} style={styles.deleteButton}>
+  //                 <Text style={styles.buttonText}>Delete</Text>
+  //               </Pressable>
+  //             )}
+  //           </View>
+  //         </View>
+  //       </Modal>
+  //     </View>
+  //   );
+  // };

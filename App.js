@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, ScrollView, Pressable, Modal, StyleSheet } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { firestore } from "./firebaseConfig.js";
+import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
 
 const App = () => {
   const [notes, setNotes] = useState([]);
@@ -8,59 +9,44 @@ const App = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [viewModalVisible, setViewModalVisible] = useState(false); // New modal for viewing note details
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [confirmDeleteModalVisible, setConfirmDeleteModalVisible] = useState(false); // State for confirmation modal
 
-  // Function to save notes to AsyncStorage
-  const saveNotesToStorage = async (notes) => {
+  // Load notes from Firestore
+  const loadNotesFromFirestore = async () => {
     try {
-      const jsonNotes = JSON.stringify(notes);
-      await AsyncStorage.setItem("notes", jsonNotes);
+      const snapshot = await getDocs(collection(firestore, "notes"));
+      const notes = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setNotes(notes);
     } catch (error) {
-      console.error("Error saving notes", error);
-    }
-  };
-
-  // Function to load notes from AsyncStorage
-  const loadNotesFromStorage = async () => {
-    try {
-      const storedNotes = await AsyncStorage.getItem("notes");
-      if (storedNotes !== null && storedNotes !== undefined) {
-        setNotes(JSON.parse(storedNotes));
-      } else {
-        setNotes([]);
-      }
-    } catch (error) {
-      console.error("Error loading notes", error);
+      console.error("Error loading notes from Firestore", error);
     }
   };
 
   useEffect(() => {
-    loadNotesFromStorage();
+    loadNotesFromFirestore();
   }, []);
 
-  // Handle saving a note
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     let updatedNotes;
     if (selectedNote) {
+      const noteRef = doc(firestore, "notes", selectedNote.id);
       updatedNotes = notes.map((note) => (note.id === selectedNote.id ? { ...note, title, content } : note));
       setNotes(updatedNotes);
+
+      await updateDoc(noteRef, { title, content });
       setSelectedNote(null);
     } else {
-      const newNote = {
-        id: Date.now(),
-        title,
-        content
-      };
-      updatedNotes = [...notes, newNote];
+      const newNote = { title, content };
+      const docRef = await addDoc(collection(firestore, "notes"), newNote);
+      updatedNotes = [...notes, { id: docRef.id, ...newNote }];
+      setNotes(updatedNotes);
     }
-    setNotes(updatedNotes);
-    saveNotesToStorage(updatedNotes);
     setTitle("");
     setContent("");
     setModalVisible(false);
   };
 
-  // Handle editing a note
   const handleEditNote = (note) => {
     setSelectedNote(note);
     setTitle(note.title);
@@ -68,18 +54,44 @@ const App = () => {
     setModalVisible(true);
   };
 
-  // Handle deleting a note
   const handleDeleteNote = (note) => {
-    const updatedNotes = notes.filter((item) => item.id !== note.id);
-    setNotes(updatedNotes);
-    saveNotesToStorage(updatedNotes);
-    setSelectedNote(null);
-    setModalVisible(false);
+    setModalVisible(false); // Close the edit modal first
+    setTimeout(() => {
+      setSelectedNote(note); // Set the selected note for deletion
+      setConfirmDeleteModalVisible(true); // Show the confirmation modal after a small delay
+    }, 300); // Optional small delay to ensure the modal transitions properly
   };
+
+  const confirmDeleteNote = async () => {
+    const updatedNotes = notes.filter((item) => item.id !== selectedNote.id);
+    setNotes(updatedNotes);
+
+    const noteRef = doc(firestore, "notes", selectedNote.id);
+    await deleteDoc(noteRef);
+
+    setConfirmDeleteModalVisible(false); // Close the confirmation modal
+    setSelectedNote(null); // Reset the selected note
+  };
+
+  // const handleDeleteNote = (note) => {
+  //   setSelectedNote(note); // Set the selected note for deletion
+  //   setConfirmDeleteModalVisible(true); // Show the confirmation modal
+  // };
+
+  // const confirmDeleteNote = async () => {
+  //   const updatedNotes = notes.filter((item) => item.id !== selectedNote.id);
+  //   setNotes(updatedNotes);
+
+  //   const noteRef = doc(firestore, "notes", selectedNote.id);
+  //   await deleteDoc(noteRef);
+
+  //   setConfirmDeleteModalVisible(false); // Close the confirmation modal
+  //   setSelectedNote(null); // Reset the selected note
+  // };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Notes</Text>
+      <Text style={styles.title}>My Bucketlist 😁</Text>
 
       <ScrollView style={styles.noteList}>
         {notes.map((note, index) => (
@@ -88,18 +100,14 @@ const App = () => {
               <Text style={styles.noteTitle}>
                 {index + 1}. {note.title}
               </Text>
-
-              {/* Edit button next to the title */}
               <Pressable onPress={() => handleEditNote(note)} style={styles.editButton}>
                 <Text style={styles.editButtonText}>Edit</Text>
               </Pressable>
             </View>
-
-            {/* Pressable content to view details */}
             <Pressable
               onPress={() => {
                 setSelectedNote(note);
-                setViewModalVisible(true); // Open the view modal
+                setViewModalVisible(true);
               }}
             >
               <Text style={styles.basicText2}>{note.content.length > 25 ? note.content.substring(0, 25) + "..." : note.content}</Text>
@@ -108,7 +116,6 @@ const App = () => {
         ))}
       </ScrollView>
 
-      {/* Add Note button */}
       <Pressable
         style={styles.addButton}
         onPress={() => {
@@ -120,27 +127,47 @@ const App = () => {
         <Text style={styles.addButtonText}>Add Note</Text>
       </Pressable>
 
+      {/* Confirmation Modal for Deleting Note */}
+      <Modal visible={confirmDeleteModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.confirmationModalContainer}>
+          <Text style={styles.confirmationText}>Are you sure you want to delete this note?</Text>
+          <View style={styles.buttonRow}>
+            <Pressable onPress={confirmDeleteNote} style={styles.deleteButton}>
+              <Text style={styles.buttonText}>Yes</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setConfirmDeleteModalVisible(false); // Close the confirmation modal
+                setModalVisible(true); // Reopen the edit modal
+              }}
+              style={styles.cancelButton}
+            >
+              <Text style={styles.buttonText}>No</Text>
+            </Pressable>
+
+            {/* <Pressable onPress={() => setConfirmDeleteModalVisible(false)} style={styles.cancelButton}>
+              <Text style={styles.buttonText}>No</Text>
+            </Pressable> */}
+          </View>
+        </View>
+      </Modal>
+
       {/* Modal for viewing note details */}
       {selectedNote && (
         <Modal visible={viewModalVisible} animationType="slide" transparent={false}>
           <View style={styles.modalContainer}>
             <Text style={styles.detailTitle}>Title: {selectedNote.title}</Text>
             <Text style={styles.detailContent}>Details: {selectedNote.content}</Text>
-
-            {/* Container to hold the Edit and Close buttons on the same line */}
             <View style={styles.buttonRow}>
-              {/* Edit button */}
               <Pressable
                 onPress={() => {
                   setViewModalVisible(false);
-                  handleEditNote(selectedNote); // Switch to the edit modal
+                  handleEditNote(selectedNote);
                 }}
                 style={styles.editButtonModal}
               >
                 <Text style={styles.editButtonText}>Edit</Text>
               </Pressable>
-
-              {/* Close button */}
               <Pressable onPress={() => setViewModalVisible(false)} style={styles.cancelButton}>
                 <Text style={styles.buttonText}>Close</Text>
               </Pressable>
@@ -154,16 +181,13 @@ const App = () => {
         <View style={styles.modalContainerPurple}>
           <TextInput style={styles.detailTitle} placeholder="Enter note title" value={title} onChangeText={setTitle} />
           <TextInput style={styles.detailContent} multiline placeholder="Enter note content" value={content} onChangeText={setContent} />
-
           <View style={styles.buttonContainer}>
             <Pressable onPress={handleSaveNote} style={styles.saveButton}>
               <Text style={styles.buttonText}>Save</Text>
             </Pressable>
-
             <Pressable onPress={() => setModalVisible(false)} style={styles.cancelButton}>
               <Text style={styles.buttonText}>Cancel</Text>
             </Pressable>
-
             {selectedNote && (
               <Pressable onPress={() => handleDeleteNote(selectedNote)} style={styles.deleteButton}>
                 <Text style={styles.buttonText}>Delete</Text>
@@ -263,7 +287,6 @@ const styles = StyleSheet.create({
     width: "30%",
     alignItems: "center"
   },
-
   buttonText: {
     color: "white",
     fontWeight: "bold"
@@ -335,6 +358,23 @@ const styles = StyleSheet.create({
   editButtonText: {
     color: "white",
     fontWeight: "bold"
+  },
+  confirmationModalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    padding: 20
+  },
+  confirmationText: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: "white" // Adjust text color as needed
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%"
   }
 });
 
