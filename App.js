@@ -5,6 +5,13 @@ import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc } from "firebase
 import { launchImageLibrary } from "react-native-image-picker";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
+/* --------- TODO ----------
+a. mangler detail view når man trykker på en note
+b. mangler crud på image
+c. mangler visning af på image i detail view
+ */
+
+
 const App = () => {
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
@@ -126,7 +133,6 @@ const App = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>My Bucketlist 😁</Text>
-
       <ScrollView style={styles.noteList}>
         {notes.map((note, index) => (
           <View key={note.id} style={styles.noteContainer}>
@@ -148,7 +154,6 @@ const App = () => {
           </View>
         ))}
       </ScrollView>
-
       <Pressable
         style={styles.addButton}
         onPress={() => {
@@ -159,7 +164,6 @@ const App = () => {
       >
         <Text style={styles.addButtonText}>Add Note</Text>
       </Pressable>
-
       {/* Modal for creating/editing notes */}
       <Modal visible={modalVisible} animationType="slide" transparent={false}>
         <View style={styles.modalContainerPurple}>
@@ -383,6 +387,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: "80%"
+  },
+  selectedImage: {
+    width: 150,
+    height: 150,
+    marginVertical: 10,
+    borderRadius: 8
+  },
+  selectImageButton: {
+    backgroundColor: "#4CAF50",
+    padding: 10,
+    marginVertical: 10,
+    borderRadius: 5
+  },
+  noteImage: {
+    width: "100%",
+    height: 150,
+    marginVertical: 10,
+    borderRadius: 8
   }
 });
 
