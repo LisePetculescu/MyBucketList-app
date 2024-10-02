@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, ScrollView, Pressable, Modal, StyleSheet } from "react-native";
+import { View, Text, TextInput, ScrollView, Pressable, Modal, StyleSheet, Image } from "react-native";
 import { firestore } from "./firebaseConfig.js";
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { launchImageLibrary } from "react-native-image-picker";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const App = () => {
   const [notes, setNotes] = useState([]);
@@ -9,8 +11,8 @@ const App = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [viewModalVisible, setViewModalVisible] = useState(false);
-  const [confirmDeleteModalVisible, setConfirmDeleteModalVisible] = useState(false); // State for confirmation modal
+  const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState(null);
 
   // Load notes from Firestore
   const loadNotesFromFirestore = async () => {
@@ -29,23 +31,48 @@ const App = () => {
 
   const handleSaveNote = async () => {
     let updatedNotes;
+
+    // If editing an existing note
     if (selectedNote) {
       const noteRef = doc(firestore, "notes", selectedNote.id);
-      updatedNotes = notes.map((note) => (note.id === selectedNote.id ? { ...note, title, content } : note));
+      updatedNotes = notes.map((note) => (note.id === selectedNote.id ? { ...note, title, content, imageUrl: selectedImageUri } : note));
       setNotes(updatedNotes);
 
-      await updateDoc(noteRef, { title, content });
+      await updateDoc(noteRef, { title, content, imageUrl: selectedImageUri });
       setSelectedNote(null);
     } else {
-      const newNote = { title, content };
+      // If creating a new note
+      const newNote = { title, content, imageUrl: selectedImageUri };
       const docRef = await addDoc(collection(firestore, "notes"), newNote);
       updatedNotes = [...notes, { id: docRef.id, ...newNote }];
       setNotes(updatedNotes);
     }
+
     setTitle("");
     setContent("");
+    setSelectedImageUri(null); // Clear the image selection after saving
     setModalVisible(false);
   };
+
+  // const handleSaveNote = async () => {
+  //   let updatedNotes;
+  //   if (selectedNote) {
+  //     const noteRef = doc(firestore, "notes", selectedNote.id);
+  //     updatedNotes = notes.map((note) => (note.id === selectedNote.id ? { ...note, title, content } : note));
+  //     setNotes(updatedNotes);
+
+  //     await updateDoc(noteRef, { title, content });
+  //     setSelectedNote(null);
+  //   } else {
+  //     const newNote = { title, content };
+  //     const docRef = await addDoc(collection(firestore, "notes"), newNote);
+  //     updatedNotes = [...notes, { id: docRef.id, ...newNote }];
+  //     setNotes(updatedNotes);
+  //   }
+  //   setTitle("");
+  //   setContent("");
+  //   setModalVisible(false);
+  // };
 
   const handleEditNote = (note) => {
     setSelectedNote(note);
@@ -54,12 +81,8 @@ const App = () => {
     setModalVisible(true);
   };
 
-  const handleDeleteNote = (note) => {
-    setModalVisible(false); // Close the edit modal first
-    setTimeout(() => {
-      setSelectedNote(note); // Set the selected note for deletion
-      setConfirmDeleteModalVisible(true); // Show the confirmation modal after a small delay
-    }, 300); // Optional small delay to ensure the modal transitions properly
+  const handleDeleteNote = () => {
+    setConfirmDeleteVisible(true); // Show the confirmation overlay
   };
 
   const confirmDeleteNote = async () => {
@@ -69,25 +92,36 @@ const App = () => {
     const noteRef = doc(firestore, "notes", selectedNote.id);
     await deleteDoc(noteRef);
 
-    setConfirmDeleteModalVisible(false); // Close the confirmation modal
-    setSelectedNote(null); // Reset the selected note
+    setModalVisible(false);
+    setConfirmDeleteVisible(false);
+    setSelectedNote(null);
   };
 
-  // const handleDeleteNote = (note) => {
-  //   setSelectedNote(note); // Set the selected note for deletion
-  //   setConfirmDeleteModalVisible(true); // Show the confirmation modal
-  // };
+  const selectImage = async () => {
+    const result = await launchImageLibrary({
+      mediaType: "photo"
+    });
 
-  // const confirmDeleteNote = async () => {
-  //   const updatedNotes = notes.filter((item) => item.id !== selectedNote.id);
-  //   setNotes(updatedNotes);
+    if (result.assets && result.assets.length > 0) {
+      const imageUri = result.assets[0].uri;
+      setSelectedImageUri(imageUri);
 
-  //   const noteRef = doc(firestore, "notes", selectedNote.id);
-  //   await deleteDoc(noteRef);
+      const uploadImage = async (uri) => {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const storage = getStorage();
+        const filename = `images/${Date.now()}.jpg`;
+        const imageRef = ref(storage, filename);
 
-  //   setConfirmDeleteModalVisible(false); // Close the confirmation modal
-  //   setSelectedNote(null); // Reset the selected note
-  // };
+        await uploadBytes(imageRef, blob);
+        const downloadURL = await getDownloadURL(imageRef);
+        return downloadURL;
+      };
+
+      const imageUrl = await uploadImage(imageUri);
+      setSelectedImageUri(imageUrl);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -107,7 +141,6 @@ const App = () => {
             <Pressable
               onPress={() => {
                 setSelectedNote(note);
-                setViewModalVisible(true);
               }}
             >
               <Text style={styles.basicText2}>{note.content.length > 25 ? note.content.substring(0, 25) + "..." : note.content}</Text>
@@ -127,60 +160,27 @@ const App = () => {
         <Text style={styles.addButtonText}>Add Note</Text>
       </Pressable>
 
-      {/* Confirmation Modal for Deleting Note */}
-      <Modal visible={confirmDeleteModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.confirmationModalContainer}>
-          <Text style={styles.confirmationText}>Are you sure you want to delete this note?</Text>
-          <View style={styles.buttonRow}>
-            <Pressable onPress={confirmDeleteNote} style={styles.deleteButton}>
-              <Text style={styles.buttonText}>Yes</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setConfirmDeleteModalVisible(false); // Close the confirmation modal
-                setModalVisible(true); // Reopen the edit modal
-              }}
-              style={styles.cancelButton}
-            >
-              <Text style={styles.buttonText}>No</Text>
-            </Pressable>
-
-            {/* <Pressable onPress={() => setConfirmDeleteModalVisible(false)} style={styles.cancelButton}>
-              <Text style={styles.buttonText}>No</Text>
-            </Pressable> */}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal for viewing note details */}
-      {selectedNote && (
-        <Modal visible={viewModalVisible} animationType="slide" transparent={false}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.detailTitle}>Title: {selectedNote.title}</Text>
-            <Text style={styles.detailContent}>Details: {selectedNote.content}</Text>
-            <View style={styles.buttonRow}>
-              <Pressable
-                onPress={() => {
-                  setViewModalVisible(false);
-                  handleEditNote(selectedNote);
-                }}
-                style={styles.editButtonModal}
-              >
-                <Text style={styles.editButtonText}>Edit</Text>
-              </Pressable>
-              <Pressable onPress={() => setViewModalVisible(false)} style={styles.cancelButton}>
-                <Text style={styles.buttonText}>Close</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
-      )}
-
       {/* Modal for creating/editing notes */}
       <Modal visible={modalVisible} animationType="slide" transparent={false}>
         <View style={styles.modalContainerPurple}>
           <TextInput style={styles.detailTitle} placeholder="Enter note title" value={title} onChangeText={setTitle} />
           <TextInput style={styles.detailContent} multiline placeholder="Enter note content" value={content} onChangeText={setContent} />
+
+          {/* Conditional overlay confirmation */}
+          {confirmDeleteVisible && (
+            <View style={styles.confirmationOverlay}>
+              <Text style={styles.confirmationText}>Are you sure you want to delete this note?</Text>
+              <View style={styles.buttonRow}>
+                <Pressable onPress={confirmDeleteNote} style={styles.deleteButton}>
+                  <Text style={styles.buttonText}>Yes</Text>
+                </Pressable>
+                <Pressable onPress={() => setConfirmDeleteVisible(false)} style={styles.cancelButton}>
+                  <Text style={styles.buttonText}>No</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+
           <View style={styles.buttonContainer}>
             <Pressable onPress={handleSaveNote} style={styles.saveButton}>
               <Text style={styles.buttonText}>Save</Text>
@@ -188,11 +188,10 @@ const App = () => {
             <Pressable onPress={() => setModalVisible(false)} style={styles.cancelButton}>
               <Text style={styles.buttonText}>Cancel</Text>
             </Pressable>
-            {selectedNote && (
-              <Pressable onPress={() => handleDeleteNote(selectedNote)} style={styles.deleteButton}>
-                <Text style={styles.buttonText}>Delete</Text>
-              </Pressable>
-            )}
+            {/* Delete button */}
+            <Pressable onPress={handleDeleteNote} style={styles.deleteButton}>
+              <Text style={styles.buttonText}>Delete</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -346,7 +345,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     alignItems: "center",
-    width: "40%"
+    width: "30%"
   },
   deleteButton: {
     backgroundColor: "#FF3B30",
@@ -359,22 +358,31 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold"
   },
-  confirmationModalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
-    padding: 20
-  },
   confirmationText: {
     fontSize: 18,
     marginBottom: 20,
-    color: "white" // Adjust text color as needed
+    color: "white"
+  },
+  confirmationOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 10
+  },
+  confirmationText: {
+    color: "white",
+    fontSize: 18,
+    marginBottom: 20
   },
   buttonRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%"
+    justifyContent: "space-between",
+    width: "80%"
   }
 });
 
