@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, ScrollView, Pressable, Modal, StyleSheet, Image } from "react-native";
+import { View, Text, TextInput, ScrollView, Pressable, Modal, Image } from "react-native";
 import { firestore } from "./firebaseConfig.js";
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { launchImageLibrary } from "react-native-image-picker";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { styles } from "./styles.js";
 
 /* --------- TODO ----------
 a. mangler detail view når man trykker på en note
 b. mangler crud på image
 c. mangler visning af på image i detail view
+d. mangler navi i stedet for modal
+e. mangler maps
+f. opdeling i components i stedet for en stor fil
  */
-
 
 const App = () => {
   const [notes, setNotes] = useState([]);
@@ -106,7 +109,7 @@ const App = () => {
 
   const selectImage = async () => {
     const result = await launchImageLibrary({
-      mediaType: "photo"
+      mediaType: "photo",
     });
 
     if (result.assets && result.assets.length > 0) {
@@ -202,210 +205,5 @@ const App = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 40,
-    backgroundColor: "#ACE1AF"
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#333"
-  },
-  basicText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#333"
-  },
-  basicText2: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    backgroundColor: "rgb(205 248 176)",
-    paddingBottom: 15,
-    paddingLeft: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    marginLeft: 10
-  },
-  noteList: {
-    flex: 1
-  },
-  noteTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "black",
-    backgroundColor: "white",
-    padding: 10,
-    borderRadius: 8,
-    flex: 1
-  },
-
-  addButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#007BFF",
-    paddingVertical: 12,
-    borderRadius: 5,
-    marginTop: 10
-  },
-  addButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold"
-  },
-  modalContainerPurple: {
-    flex: 1,
-    padding: 50,
-    backgroundColor: "rgb(241 192 255)"
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5
-  },
-  contentInput: {
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    padding: 10,
-    marginBottom: 20,
-    borderRadius: 5,
-    height: 150,
-    verticalAlign: "top"
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between"
-  },
-  saveButton: {
-    backgroundColor: "#007BFF",
-    padding: 10,
-    borderRadius: 8,
-    width: "30%",
-    alignItems: "center"
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold"
-  },
-  modalContainer: {
-    flex: 1,
-    padding: 50,
-    backgroundColor: "pink",
-    padding: 10
-  },
-  detailTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 10
-  },
-  detailContent: {
-    fontSize: 18,
-    marginBottom: 20,
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 10
-  },
-  noteContainer: {
-    marginBottom: 20
-  },
-
-  noteHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-
-  editButton: {
-    backgroundColor: "#007BFF",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    width: "20%"
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20
-  },
-  editButtonModal: {
-    backgroundColor: "#007BFF",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    width: "40%"
-  },
-  cancelButton: {
-    backgroundColor: "#FF9500",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    width: "30%"
-  },
-  deleteButton: {
-    backgroundColor: "#FF3B30",
-    padding: 10,
-    borderRadius: 8,
-    width: "30%",
-    alignItems: "center"
-  },
-  editButtonText: {
-    color: "white",
-    fontWeight: "bold"
-  },
-  confirmationText: {
-    fontSize: 18,
-    marginBottom: 20,
-    color: "white"
-  },
-  confirmationOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 10
-  },
-  confirmationText: {
-    color: "white",
-    fontSize: 18,
-    marginBottom: 20
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "80%"
-  },
-  selectedImage: {
-    width: 150,
-    height: 150,
-    marginVertical: 10,
-    borderRadius: 8
-  },
-  selectImageButton: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    marginVertical: 10,
-    borderRadius: 5
-  },
-  noteImage: {
-    width: "100%",
-    height: 150,
-    marginVertical: 10,
-    borderRadius: 8
-  }
-});
 
 export default App;
