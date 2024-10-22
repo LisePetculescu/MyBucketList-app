@@ -13,6 +13,9 @@ c. mangler visning af på image i detail view
 d. mangler navi i stedet for modal
 e. mangler maps
 f. opdeling i components i stedet for en stor fil
+g. når man edit en note og så cancel og så laver en ny note, 
+   så opdateres den anden note i stedet for at  lave en ny
+h. mangler valg af billeder ift maps
  */
 
 const App = () => {
